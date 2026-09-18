@@ -29,6 +29,9 @@ WORKDIR /frontend
 
 ARG NPM_REGISTRY=
 ARG NODE_MAX_OLD_SPACE_SIZE=4096
+# Sub-path deployment: set to e.g. /weknora/ to serve the SPA under a prefix.
+ARG VITE_BASE=/
+ENV VITE_BASE=${VITE_BASE}
 
 ENV VITE_IS_DOCKER=true
 # Vite production builds of this SPA routinely exceed Node's default heap.

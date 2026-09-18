@@ -518,6 +518,7 @@ import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import SettingDrawer from '@/components/settings/SettingDrawer.vue'
 import { copyWithToast } from '@/utils/clipboard'
+import { withBase } from '@/utils/api-base'
 import { useAuthStore } from '@/stores/auth'
 import { AUDIT_ACTION_I18N_ROOTS } from '@/i18n/auditActionRegistry'
 import { auditActionLabel } from '@/i18n/auditActionLabel'
@@ -1265,7 +1266,7 @@ function absoluteInviteURL(raw: string): string {
   if (!raw) return ''
   if (/^https?:\/\//i.test(raw)) return raw
   const origin = (typeof window !== 'undefined' && window.location && window.location.origin) || ''
-  return raw.startsWith('/') ? origin + raw : origin + '/' + raw
+  return raw.startsWith('/') ? origin + withBase(raw) : origin + withBase('/' + raw)
 }
 
 async function copyText(text: string) {

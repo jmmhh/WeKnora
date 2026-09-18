@@ -11,6 +11,8 @@
  * 这里把该决策收敛成单一真相源，渲染组件只需声明作用域，不再各自拼 URL。
  */
 
+import { withBase } from '@/utils/api-base'
+
 export const PROVIDER_SCHEME_PATTERN = 'resource|local|minio|cos|tos|s3|oss|ks3|obs';
 
 const PROVIDER_FILE_SCHEME_RE = new RegExp(`^(${PROVIDER_SCHEME_PATTERN}):\\/\\/\\S+$`, 'i');
@@ -98,11 +100,14 @@ export function isProviderFileURL(url: string): boolean {
 
 /** 是否为受保护文件代理之一的路径。 */
 export function isProtectedFileProxyPath(pathname: string): boolean {
+  // Strip the deployment base path (e.g. /weknora) so sub-path deployments match.
+  const base = getApiBaseUrl();
+  const p = base && pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : pathname;
   return (
-    pathname === '/files'
-    || KB_FILE_PROXY_PATH_RE.test(pathname)
-    || MESSAGE_FILE_PROXY_PATH_RE.test(pathname)
-    || EMBED_FILE_PROXY_PATH_RE.test(pathname)
+    p === '/files'
+    || KB_FILE_PROXY_PATH_RE.test(p)
+    || MESSAGE_FILE_PROXY_PATH_RE.test(p)
+    || EMBED_FILE_PROXY_PATH_RE.test(p)
   );
 }
 
@@ -150,24 +155,24 @@ export function buildProtectedFileRequest(
     // 不如跳过等待 bootstrap 完成后的下一次水合。
     if (!channelId || !token) return null;
     return {
-      url: `/api/v1/embed/${encodeURIComponent(channelId)}/files?${query}`,
+      url: withBase(`/api/v1/embed/${encodeURIComponent(channelId)}/files?${query}`),
       headers: { Authorization: `Embed ${token}` },
     };
   }
 
   if (access.mode === 'knowledgeBase') {
     return {
-      url: `/api/v1/knowledge-bases/${encodeURIComponent(access.kbId.trim())}/files?${query}`,
+      url: withBase(`/api/v1/knowledge-bases/${encodeURIComponent(access.kbId.trim())}/files?${query}`),
       headers: tenantRequestHeaders(),
     };
   }
 
   if (access.mode === 'message') {
     return {
-      url: `/api/v1/sessions/${encodeURIComponent(access.sessionId.trim())}/messages/${encodeURIComponent(access.messageId.trim())}/files?${query}`,
+      url: withBase(`/api/v1/sessions/${encodeURIComponent(access.sessionId.trim())}/messages/${encodeURIComponent(access.messageId.trim())}/files?${query}`),
       headers: tenantRequestHeaders(),
     };
   }
 
-  return { url: `/files?${query}`, headers: tenantRequestHeaders() };
+  return { url: withBase(`/files?${query}`), headers: tenantRequestHeaders() };
 }

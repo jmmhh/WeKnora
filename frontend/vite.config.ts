@@ -68,6 +68,10 @@ function resolveVueOfficePptxEntry(): string {
 }
 
 export default defineConfig({
+  // Sub-path deployment support: set VITE_BASE=/weknora/ at build time to serve
+  // the SPA under a prefix (router history + axios baseURL + index.html asset
+  // refs all derive from Vite's BASE_URL). Defaults to root for upstream parity.
+  base: process.env.VITE_BASE || '/',
   define: {
     __FRONTEND_VERSION__: JSON.stringify(FRONTEND_VERSION),
     __FRONTEND_COMMIT__: JSON.stringify(FRONTEND_COMMIT),
