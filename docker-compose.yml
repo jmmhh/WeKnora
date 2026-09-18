@@ -42,6 +42,8 @@ services:
       dockerfile: docker/Dockerfile.app
       args:
         - APK_MIRROR_ARG=${APK_MIRROR_ARG:-}
+        # CN-friendly PyPI mirror (pypi.org is slow/blocked here)
+        - PIP_INDEX_URL=${PIP_INDEX_URL:-}
         - WITH_ANYDOC=${WITH_ANYDOC:-1}
         - WITH_BROWSERSKILL=${WITH_BROWSERSKILL:-0}
         # CN-friendly Go module resolution (proxy.golang.org is unreachable here)

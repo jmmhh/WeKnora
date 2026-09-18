@@ -111,6 +111,8 @@ FROM debian:12.12-slim
 WORKDIR /app
 
 ARG APK_MIRROR_ARG
+# Optional PyPI mirror for GFW-restricted hosts (e.g. https://pypi.tuna.tsinghua.edu.cn/simple).
+ARG PIP_INDEX_URL
 
 # Pairing derives the gateway URL from the user's page origin by default.
 ENV BROWSERSKILL_BINARY=/opt/weknora/browserskill/bsk \
@@ -137,7 +139,8 @@ RUN if [ -n "$APK_MIRROR_ARG" ]; then \
         nodejs npm \
         gosu \
         ffmpeg && \
-    python3 -m pip install --break-system-packages --upgrade pip setuptools wheel && \
+    python3 -m pip install --break-system-packages --upgrade \
+        -i ${PIP_INDEX_URL:-https://pypi.org/simple} pip setuptools wheel && \
     mkdir -p /home/appuser/.local/bin && \
     curl -LsSf https://astral.sh/uv/install.sh | CARGO_HOME=/home/appuser/.cargo UV_INSTALL_DIR=/home/appuser/.local/bin sh && \
     chown -R appuser:appuser /home/appuser && \
