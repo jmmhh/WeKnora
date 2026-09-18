@@ -41,6 +41,10 @@ services:
       args:
         - APK_MIRROR_ARG=${APK_MIRROR_ARG:-}
         - WITH_ANYDOC=${WITH_ANYDOC:-1}
+        # CN-friendly Go module resolution (proxy.golang.org is unreachable here)
+        - GOPROXY_ARG=${GOPROXY_ARG:-https://goproxy.cn,direct}
+        - GOSUMDB_ARG=${GOSUMDB_ARG:-off}
+        - GOPRIVATE_ARG=${GOPRIVATE_ARG:-}
     container_name: WeKnora-app
     ports:
       - "${APP_PORT:-8080}:8080"
