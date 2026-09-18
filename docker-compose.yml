@@ -15,7 +15,7 @@ services:
         VITE_BASE: ${VITE_BASE:-/}
     container_name: WeKnora-frontend
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-80}:80"
     environment:
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}
       - MAX_SKILL_BUNDLE_SIZE_MB=${MAX_SKILL_BUNDLE_SIZE_MB:-256}
@@ -50,7 +50,9 @@ services:
         - GOPRIVATE_ARG=${GOPRIVATE_ARG:-}
     container_name: WeKnora-app
     ports:
-      - "${APP_PORT:-8080}:8080"
+      # Bind loopback only: public access is exclusively via host nginx /weknora/
+      # so the app's raw port can't be hit directly (prefix isolation).
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
     volumes:
       - data-files:/data/files
       - docreader-tmp:/tmp/docreader:ro
