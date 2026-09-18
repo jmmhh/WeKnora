@@ -1,31 +1,37 @@
-# Browserskill (browser extension helper) is not customized in this fork.
-# Reuse the pre-built artifact from the pinned upstream image instead of
-# rebuilding the Rust toolchain from source (which is very slow / unreliable
-# behind the GFW on the Tencent Cloud build host).
-# Toggle with BROWSERSKILL_FROM_SOURCE=1 if you ever need to customize it.
-ARG BROWSERSKILL_FROM_SOURCE=0
-FROM wechatopenai/weknora-app:latest AS browserskill_prebuilt
-FROM --platform=$TARGETPLATFORM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS browserskill_src
+# Browserskill (browser extension helper) is an optional feature of this fork.
+# Building it requires cloning Tencent/BrowserSkill from GitHub + a full Rust
+# toolchain, both unreliable behind the GFW on this Tencent Cloud build host.
+# Default: skip it (the feature auto-disables when BROWSERSKILL_BINARY is empty).
+# Set WITH_BROWSERSKILL=1 (compose build arg) when you actually need it.
+ARG WITH_BROWSERSKILL=0
+
+FROM --platform=$TARGETPLATFORM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS browserskill
 WORKDIR /build
+ARG WITH_BROWSERSKILL
 ARG APK_MIRROR_ARG
-RUN if [ -n "$APK_MIRROR_ARG" ]; then \
-        sed -i "s@deb.debian.org@${APK_MIRROR_ARG}@g" /etc/apt/sources.list.d/debian.sources; \
-    fi && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends git python3 ca-certificates curl build-essential cmake pkg-config && \
-    rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /opt/weknora/browserskill && if [ "$WITH_BROWSERSKILL" != "1" ]; then \
+        echo "browserskill disabled (WITH_BROWSERSKILL=$WITH_BROWSERSKILL)" > /opt/weknora/browserskill/README.disabled; \
+    fi
+RUN if [ "$WITH_BROWSERSKILL" = "1" ]; then \
+        if [ -n "$APK_MIRROR_ARG" ]; then sed -i "s@deb.debian.org@${APK_MIRROR_ARG}@g" /etc/apt/sources.list.d/debian.sources; fi && \
+        apt-get update && \
+        apt-get install -y --no-install-recommends git python3 ca-certificates curl build-essential cmake pkg-config && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
 ENV PATH=/usr/local/cargo/bin:$PATH
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+# CN Rust mirror so the toolchain install is fast/reliable when enabled.
+ENV RUSTUP_DIST_SERVER=https://rsproxy.cn RUSTUP_UPDATE_ROOT=https://rsproxy.cn/rustup
 COPY scripts/build_browserskill.sh scripts/browserskill-release.json ./scripts/
 COPY patches/browserskill ./patches/browserskill
 ARG TARGETOS
 ARG TARGETARCH
-RUN bash scripts/build_browserskill.sh /opt/weknora/browserskill "${TARGETOS}/${TARGETARCH}"
-
-# Default artifact source: prebuilt upstream. (If building from source, change to
-# `FROM browserskill_src AS browserskill`.)
-FROM browserskill_prebuilt AS browserskill
+RUN if [ "$WITH_BROWSERSKILL" = "1" ]; then \
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh && \
+        sh /tmp/rustup.sh -y --profile minimal --default-toolchain stable && \
+        mkdir -p /usr/local/cargo && printf '[source.crates-io]\nreplace-with = "rsproxy-sparse"\n[source.rsproxy-sparse]\nregistry = "sparse+https://rsproxy.cn/index/"\n[net]\ngit-fetch-with-cli = true\n' > /usr/local/cargo/config.toml && \
+        bash scripts/build_browserskill.sh /opt/weknora/browserskill "${TARGETOS}/${TARGETARCH}"; \
+    fi
 
 # Build stage
 FROM golang:1.26-bookworm AS builder

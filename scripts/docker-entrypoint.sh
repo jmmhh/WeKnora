@@ -64,5 +64,13 @@ case "${DOCKER_HOST:-}" in
         ;;
 esac
 
+# ─── Disable optional browserskill when its binary is absent ───
+# The extension helper is optional; when the fork is built without it the
+# BROWSERSKILL_BINARY path does not exist, so unset it to keep the feature off.
+if [ -n "${BROWSERSKILL_BINARY:-}" ] && [ ! -x "$BROWSERSKILL_BINARY" ]; then
+    echo "weknora: browserskill binary not present; disabling browser integration" >&2
+    unset BROWSERSKILL_BINARY BROWSERSKILL_EXTENSION_PATH
+fi
+
 # ─── Drop privileges and exec the main process ───
 exec gosu appuser "$@"
