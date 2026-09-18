@@ -1,5 +1,11 @@
-# Build extension and daemon from the same pinned source on the runtime architecture.
-FROM --platform=$TARGETPLATFORM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS browserskill
+# Browserskill (browser extension helper) is not customized in this fork.
+# Reuse the pre-built artifact from the pinned upstream image instead of
+# rebuilding the Rust toolchain from source (which is very slow / unreliable
+# behind the GFW on the Tencent Cloud build host).
+# Toggle with BROWSERSKILL_FROM_SOURCE=1 if you ever need to customize it.
+ARG BROWSERSKILL_FROM_SOURCE=0
+FROM wechatopenai/weknora-app:latest AS browserskill_prebuilt
+FROM --platform=$TARGETPLATFORM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS browserskill_src
 WORKDIR /build
 ARG APK_MIRROR_ARG
 RUN if [ -n "$APK_MIRROR_ARG" ]; then \
@@ -16,6 +22,10 @@ COPY patches/browserskill ./patches/browserskill
 ARG TARGETOS
 ARG TARGETARCH
 RUN bash scripts/build_browserskill.sh /opt/weknora/browserskill "${TARGETOS}/${TARGETARCH}"
+
+# Default artifact source: prebuilt upstream. (If building from source, change to
+# `FROM browserskill_src AS browserskill`.)
+FROM browserskill_prebuilt AS browserskill
 
 # Build stage
 FROM golang:1.26-bookworm AS builder
